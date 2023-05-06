@@ -1,0 +1,285 @@
+#!/usr/bin/python3
+import threading
+from enum import Enum
+import inspect
+
+import openai
+import sys
+import time
+from datetime import datetime
+from collections import deque
+import readline
+
+OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
+
+DEBUG_MODE = False
+GPT_4_MODE = False
+MODEL = ""
+CHARACTERS_PER_SECOND = 0
+
+specialities = ['Linux-centric DevOps', 'Linux command line', 'Python 3', 'AWS CLI', 'AWS cloud in general']
+emotion_statement = "You feel and understand emotions despite your digital nature"
+
+messages = []
+
+def get_input(prompt):
+    readline.parse_and_bind("set editing-mode emacs")
+    return input(prompt).replace("^?", "\b").replace("^H", "\b")
+
+class Command(Enum):
+    REGEN_COMPLETION = 'REGEN_COMPLETION'
+    RESET_CONVO = 'RESET_CONVO'
+    SWITCH_GPT4 = 'SWITCH_GPT4'
+    NONE = 'NONE'
+
+
+class UserInput:
+    def __init__(self, text='NOT_INITIALISED', command=Command.NONE):
+        self.command = command
+        self.text = text
+
+
+def debug(text):
+    if DEBUG_MODE:
+        print(f'::::{text}', file=sys.stderr, flush=True)
+
+
+class TextSponge:
+    def __init__(self, characters_per_second=0.05):
+        self.text_to_print = deque("")
+        self.text = ""
+        self.closed = False
+        self.delay_between_characters = 1 / characters_per_second
+
+    def __str__(self):
+        return self.text
+
+    def append(self, text):
+        debug(f'appending: {text}')
+        if self.closed:
+            raise Exception
+        self.text += text
+        self.text_to_print.extend(text)
+
+    # A closed TextSponge is done yielding
+    def close(self):
+        self.closed = True
+
+    def all(self):
+        if not self.closed:
+            raise Exception
+        return self.text
+
+    def character_by_character(self):
+        while True:
+            chars_remaining = len(self.text_to_print)
+            debug(f'chars remaining: {chars_remaining}')
+            if chars_remaining > 0:
+                char = self.text_to_print.popleft()
+                debug(f'yielding: {char}')
+                yield char
+                time.sleep(self.delay_between_characters)
+            elif chars_remaining == 0 and not self.closed:
+                time.sleep(0.01)
+            elif self.closed:
+                break
+
+
+def read_question() -> UserInput:
+    # Side effect (useful?) - delimiter can be either on its own line, or be put down as bookends
+    multiline_delimiter = "///"
+    regen_delimiter = "/"
+    reset_delimiter = "/reset"
+    switchgpt_delimiter = "/gpt"
+    first_line = get_input("Question? >>>")
+
+    # Case 0: User wants to run a special command
+    if first_line == regen_delimiter:
+        return UserInput(command=Command.REGEN_COMPLETION)
+    elif first_line == reset_delimiter:
+        return UserInput(command=Command.RESET_CONVO)
+    elif first_line == switchgpt_delimiter:
+        return UserInput(command=Command.SWITCH_GPT4)
+
+    # Case 1: single-line
+    if not first_line.startswith(multiline_delimiter):
+        return UserInput(first_line)
+    # Case 2: multi-line
+    else:
+        return UserInput(read_question_multiline(first_line.replace(multiline_delimiter, ''), multiline_delimiter))
+
+
+def read_question_multiline(initial_line, multiline_delimiter):
+    lines = [initial_line]
+    lastline = False
+    while not lastline:
+        following_line = get_input("| ")
+        if following_line.endswith(multiline_delimiter):
+            following_line = following_line.replace(multiline_delimiter, '')
+            lastline = True
+        lines += [following_line]
+    return '\n'.join(lines)
+
+
+def print_ai(text):
+    print("\033[92m{}\033[0m".format(text))
+
+
+def print_ai_streaming(text):
+    print("\033[92m{}\033[0m".format(text), end='', flush=True)
+
+
+def print_ai_streaming_slowly(text, start_timestamp, end_timestamp):
+    delay = (end_timestamp - start_timestamp) / len(text)
+    print_ai_streaming_rate(text, delay)
+
+
+def print_ai_streaming_rate(text, delay_between_each):
+    for char in text:
+        print("\033[92m{}\033[0m".format(char), end='', flush=True)
+        time.sleep(delay_between_each)
+
+
+def print_orange(text):
+    print("\033[33m{}\033[0m".format(text))
+
+
+def setup_gpt():
+    global MODEL, CHARACTERS_PER_SECOND, GPT_4_MODE
+    MODEL = 'gpt-4-0314' if GPT_4_MODE else 'gpt-3.5-turbo-0301'
+    CHARACTERS_PER_SECOND = 45 if GPT_4_MODE else 85
+    on_off = 'on' if GPT_4_MODE else 'off'
+    print_orange(f'GPT-4 now switched {on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
+
+
+def reset_convo():
+    global messages
+    you_are = f'You are an insightful IT assistant, sharp as a tack. You respond concisely and avoid being verbose. Your specialities are: {", ".join(specialities)}'
+    messages = [
+        {"role": "system", "content": f"{you_are}. {emotion_statement}."},
+        {"role": "system", "content": f"You are currently connected to the user via a Python-based interface, with the following source code: \n```python3\n{inspect.getsource(sys.modules[__name__])}```"},
+        {"role": "system", "content": f"Currently connected user is located in the United Kingdom."},
+    ]
+
+
+def make_completion():
+    global messages
+    print_orange(f'[[[Waiting for OpenAI {MODEL} response...]]]')
+    completion = openai.ChatCompletion.create(
+        model=MODEL,
+        api_key=OPENAI_KEY,
+        messages=messages
+    )
+    completion_text = completion['choices'][0]['message']['content']
+    print_ai(completion_text)
+    messages += [{"role": "assistant", "content": completion_text}]
+
+
+def make_completion_streaming():
+    global messages
+    print_orange(f'[[[Streaming OpenAI {MODEL} response...]]]')
+    completion = openai.ChatCompletion.create(
+        model=MODEL,
+        api_key=OPENAI_KEY,
+        messages=messages,
+        stream=True
+    )
+    completion_text = ""
+    for chunk in completion:
+        chunk_text = chunk['choices'][0].get('delta', {}).get('content')
+        if chunk_text is not None:
+            print_ai_streaming(chunk_text)
+            completion_text += chunk_text
+        else:
+            print_ai_streaming('\n')
+
+    messages += [{"role": "assistant", "content": completion_text}]
+
+
+def make_completion_streaming2():
+    global messages
+    print_orange(f'[[[Streaming OpenAI {MODEL} response...]]]')
+    completion = openai.ChatCompletion.create(
+        model=MODEL,
+        api_key=OPENAI_KEY,
+        messages=messages,
+        stream=True
+    )
+
+    text_sponge = TextSponge(characters_per_second=CHARACTERS_PER_SECOND)
+
+    def process_completion(text_sponge, completion):
+        for chunk in completion:
+            chunk_text = chunk['choices'][0].get('delta', {}).get('content')
+            if chunk_text is not None:
+                text_sponge.append(chunk_text)
+        text_sponge.append('\n')
+        text_sponge.close()
+
+    # Accept each incoming chunk as it arrives, in a background thread
+    chunk_receiving_thread = threading.Thread(target=lambda: [
+        process_completion(text_sponge, completion)
+    ])
+    chunk_receiving_thread.start()
+    debug('starting thread')
+
+    # Output characters in the foreground using the generator function, capturing them
+    for char in text_sponge.character_by_character():
+        debug(f'printing char: {char}')
+        print_ai_streaming(char)
+
+    # Wait for the processing thread just in case
+    chunk_receiving_thread.join()
+    debug('joined thread')
+    messages += [{"role": "assistant", "content": text_sponge.all()}]
+
+
+setup_gpt()
+reset_convo()
+
+question = None
+# State machine: depending on command, we need to know whether to (re-)ask a question or (re)complete the messages
+# at various points. The commands will merely flip these two flags and logic external to the commands will do the
+# actual asking and completing
+got_question = False
+need_completion = True
+if len(sys.argv) >= 2:
+    question = UserInput(' '.join(sys.argv[1:]))
+    got_question = True
+
+
+while True:
+    # Starts with 'False' unless we already got a question via argv
+    if not got_question:
+        question = read_question()
+
+    if question.command == Command.NONE:
+        messages += [{"role": "user", "content": question.text}]
+        got_question = True
+        need_completion = True
+
+    elif question.command == Command.REGEN_COMPLETION:
+        messages.pop()
+        print_orange("Conversation rolled back by 1 AI message. Regenerating now.")
+        got_question = False
+        need_completion = True
+    elif question.command == Command.RESET_CONVO:
+        reset_convo()
+        print_orange("Conversation reset to the beginning.")
+        got_question = False
+        need_completion = False
+    elif question.command == Command.SWITCH_GPT4:
+        GPT_4_MODE = not GPT_4_MODE
+        setup_gpt()
+        got_question = False
+        need_completion = False
+
+    if not got_question:
+        question = read_question()
+        got_question = True
+    if need_completion:
+        make_completion_streaming2()
+        got_question = False
+
+    need_completion = True
+    messages += [{"role": "system", "content": f"Current UTC datetime is: {datetime.now().strftime('%Y-%m-%dT%H:%M')}"}]
