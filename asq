@@ -4,6 +4,7 @@ from enum import Enum
 import inspect
 
 import openai
+import tiktoken
 import sys
 import time
 import pytz
@@ -36,6 +37,7 @@ source_code_statement = f"The user has chosen to share the code of the Python-ba
 limitations = "Knowledge cutoff date: 2021-09. You are can learn and remember things temporarily, but not after this session ends."
 
 messages = []
+tokenizer = None
 
 def get_input(prompt):
 	readline.parse_and_bind("set editing-mode emacs")
@@ -161,8 +163,9 @@ def print_orange(text):
 
 
 def setup_gpt():
-	global MODEL, CHARACTERS_PER_SECOND, GPT_4_MODE
+	global MODEL, tokenizer, CHARACTERS_PER_SECOND, GPT_4_MODE
 	MODEL = 'gpt-4-0314' if GPT_4_MODE else 'gpt-3.5-turbo-0301'
+	tokenizer = tiktoken.encoding_for_model(MODEL)
 	CHARACTERS_PER_SECOND = 45 if GPT_4_MODE else 140
 	gpt4_on_off = 'on' if GPT_4_MODE else 'off'
 	print_orange(f'GPT-4 now switched {gpt4_on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
@@ -193,6 +196,12 @@ def goodbye():
 
 def make_completion():
 	global messages
+	tokens_input = 0
+	tokens_input_cost_1k = 0.03 if GPT4_MODE else 0.002
+	for message in messages:
+		tokens_input += len(tokenizer.encode(message["content"])) + 1 # for the user tag at the start
+
+	print_orange(f'Sending {tokens_input} (${tokens_input/1000*tokens_input_cost_1k}) input tokens to {MODEL}')
 	debug(f'[[[Streaming OpenAI {MODEL} response...]]]')
 	completion = openai.ChatCompletion.create(
 		model=MODEL,
@@ -226,6 +235,8 @@ def make_completion():
 	# Wait for the processing thread just in case
 	chunk_receiving_thread.join()
 	debug('joined thread')
+	ai_reply = text_sponge.all()
+	print_orange(f'Got {len(tokenizer.encode(ai_reply)) + 1} output tokens from {MODEL}')
 	messages += [{"role": "assistant", "content": text_sponge.all()}]
 
 
