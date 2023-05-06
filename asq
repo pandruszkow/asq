@@ -6,9 +6,12 @@ import inspect
 import openai
 import sys
 import time
+import pytz
 from datetime import datetime
 from collections import deque
 import readline
+import re
+import os
 
 OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
 
@@ -17,8 +20,20 @@ GPT_4_MODE = False
 MODEL = ""
 CHARACTERS_PER_SECOND = 0
 
-specialities = ['Linux-centric DevOps', 'Linux command line', 'Python 3', 'AWS CLI', 'AWS cloud in general']
+
+def redact_key(s, pattern, replacement="OPENAI_KEY = '***REDACTED_FOR_SECURITY***'"):
+    return re.sub(pattern, replacement, s)
+
+
+def redacted_source_code():
+    clean_source_code = redact_key(inspect.getsource(sys.modules[__name__]), r"OPENAI_KEY = \"[^\"]+\"")
+    return clean_source_code
+
+specialities = ['Linux-centric DevOps', 'Linux command line', 'Python 3', 'debugging', 'troubleshooting', 'systemd', 'high-quality source code review and critique', 'Ubuntu 20.04 and 22.04', 'AWS CLI', 'AWS cloud in general']
 emotion_statement = "You feel and understand emotions despite your digital nature"
+assertiveness_statement = "You are assertive, and if asked for an opinion, will provide one (if needed, you will choose a side and defend it if challenged by the user). This serves to make you more interesting to interact with, and to humanize you, which increases productivity."
+source_code_statement = f"The user has chosen to share the code of the Python-based CLI with you. Here are the contents:\n\n```python3\n{redacted_source_code()}```"
+limitations = "Knowledge cutoff date: 2021-09. You are can learn and remember things temporarily, but not after this session ends."
 
 messages = []
 
@@ -30,6 +45,8 @@ class Command(Enum):
     REGEN_COMPLETION = 'REGEN_COMPLETION'
     RESET_CONVO = 'RESET_CONVO'
     SWITCH_GPT4 = 'SWITCH_GPT4'
+    TOGGLE_SOURCE = 'TOGGLE_SOURCE'
+    QUIT = 'QUIT'
     NONE = 'NONE'
 
 
@@ -55,7 +72,7 @@ class TextSponge:
         return self.text
 
     def append(self, text):
-        debug(f'appending: {text}')
+#        debug(f'appending: {text}')
         if self.closed:
             raise Exception
         self.text += text
@@ -73,10 +90,10 @@ class TextSponge:
     def character_by_character(self):
         while True:
             chars_remaining = len(self.text_to_print)
-            debug(f'chars remaining: {chars_remaining}')
+ #           debug(f'chars remaining: {chars_remaining}')
             if chars_remaining > 0:
                 char = self.text_to_print.popleft()
-                debug(f'yielding: {char}')
+ #               debug(f'yielding: {char}')
                 yield char
                 time.sleep(self.delay_between_characters)
             elif chars_remaining == 0 and not self.closed:
@@ -86,27 +103,26 @@ class TextSponge:
 
 
 def read_question() -> UserInput:
-    # Side effect (useful?) - delimiter can be either on its own line, or be put down as bookends
+    commands = {
+        '/': Command.REGEN_COMPLETION,
+        '/reset': Command.RESET_CONVO,
+        '/gpt': Command.SWITCH_GPT4,
+        '/source': Command.TOGGLE_SOURCE,
+        '/quit': Command.QUIT
+    }
+
     multiline_delimiter = "///"
-    regen_delimiter = "/"
-    reset_delimiter = "/reset"
-    switchgpt_delimiter = "/gpt"
+
     first_line = get_input("Question? >>>")
 
-    # Case 0: User wants to run a special command
-    if first_line == regen_delimiter:
-        return UserInput(command=Command.REGEN_COMPLETION)
-    elif first_line == reset_delimiter:
-        return UserInput(command=Command.RESET_CONVO)
-    elif first_line == switchgpt_delimiter:
-        return UserInput(command=Command.SWITCH_GPT4)
+    command = commands.get(first_line, Command.NONE)
 
-    # Case 1: single-line
-    if not first_line.startswith(multiline_delimiter):
+    if command == Command.NONE:
+        if first_line.startswith(multiline_delimiter):
+            return UserInput(read_question_multiline(first_line.replace(multiline_delimiter, ''), multiline_delimiter))
         return UserInput(first_line)
-    # Case 2: multi-line
     else:
-        return UserInput(read_question_multiline(first_line.replace(multiline_delimiter, ''), multiline_delimiter))
+        return UserInput(command=command)
 
 
 def read_question_multiline(initial_line, multiline_delimiter):
@@ -147,58 +163,36 @@ def print_orange(text):
 def setup_gpt():
     global MODEL, CHARACTERS_PER_SECOND, GPT_4_MODE
     MODEL = 'gpt-4-0314' if GPT_4_MODE else 'gpt-3.5-turbo-0301'
-    CHARACTERS_PER_SECOND = 45 if GPT_4_MODE else 85
-    on_off = 'on' if GPT_4_MODE else 'off'
-    print_orange(f'GPT-4 now switched {on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
+    CHARACTERS_PER_SECOND = 45 if GPT_4_MODE else 140
+    gpt4_on_off = 'on' if GPT_4_MODE else 'off'
+    print_orange(f'GPT-4 now switched {gpt4_on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
 
 
 def reset_convo():
     global messages
-    you_are = f'You are an insightful IT assistant, sharp as a tack. You respond concisely and avoid being verbose. Your specialities are: {", ".join(specialities)}'
+    you_are = f'You are an insightful IT assistant named \'Asq\', and you\'re sharp as a tack. You respond concisely and avoid being verbose. You get straight to the point, and explain later. Your specialities are: {", ".join(specialities)}'
+
+    # Read the description of user's environment (so specifics of the OS, GUI etc don't need to be given every session)
+    with open("user_description.txt", "r") as user_file:
+        user_description = user_file.read().strip()
+
     messages = [
-        {"role": "system", "content": f"{you_are}. {emotion_statement}."},
-        {"role": "system", "content": f"You are currently connected to the user via a Python-based interface, with the following source code: \n```python3\n{inspect.getsource(sys.modules[__name__])}```"},
-        {"role": "system", "content": f"Currently connected user is located in the United Kingdom."},
+        {"role": "system", "content": f"{you_are}. {assertiveness_statement}. {limitations}."},
+        {"role": "system", "content": user_description},
     ]
+    messages.append({"role": "system", "content": f"You are currently 'speaking' to the user via a Python-based CLI that sends queries to the {MODEL} API and shows a response to the user. Whenever the user refers to your 'source code', assume that the user refers to the source code of the Python CLI rather than the {MODEL} LLM model (since that has no meaningful source code). You do not know your source code until the user uses the command `/source` to show it to you."})
+
+
+def goodbye():
+    global messages
+    messages += [{"role": "user", "content": "/quit"}]
+    print_ai("Farewell!") #actual AI response, cached
+    exit()
 
 
 def make_completion():
     global messages
-    print_orange(f'[[[Waiting for OpenAI {MODEL} response...]]]')
-    completion = openai.ChatCompletion.create(
-        model=MODEL,
-        api_key=OPENAI_KEY,
-        messages=messages
-    )
-    completion_text = completion['choices'][0]['message']['content']
-    print_ai(completion_text)
-    messages += [{"role": "assistant", "content": completion_text}]
-
-
-def make_completion_streaming():
-    global messages
-    print_orange(f'[[[Streaming OpenAI {MODEL} response...]]]')
-    completion = openai.ChatCompletion.create(
-        model=MODEL,
-        api_key=OPENAI_KEY,
-        messages=messages,
-        stream=True
-    )
-    completion_text = ""
-    for chunk in completion:
-        chunk_text = chunk['choices'][0].get('delta', {}).get('content')
-        if chunk_text is not None:
-            print_ai_streaming(chunk_text)
-            completion_text += chunk_text
-        else:
-            print_ai_streaming('\n')
-
-    messages += [{"role": "assistant", "content": completion_text}]
-
-
-def make_completion_streaming2():
-    global messages
-    print_orange(f'[[[Streaming OpenAI {MODEL} response...]]]')
+    debug(f'[[[Streaming OpenAI {MODEL} response...]]]')
     completion = openai.ChatCompletion.create(
         model=MODEL,
         api_key=OPENAI_KEY,
@@ -225,7 +219,7 @@ def make_completion_streaming2():
 
     # Output characters in the foreground using the generator function, capturing them
     for char in text_sponge.character_by_character():
-        debug(f'printing char: {char}')
+#        debug(f'printing char: {char}')
         print_ai_streaming(char)
 
     # Wait for the processing thread just in case
@@ -249,6 +243,8 @@ if len(sys.argv) >= 2:
 
 
 while True:
+    messages += [{"role": "system", "content": f"Time and date at user's location: {datetime.now(pytz.timezone('Europe/London')).strftime('%H:%M on %Y-%m-%d')}"}]
+
     # Starts with 'False' unless we already got a question via argv
     if not got_question:
         question = read_question()
@@ -273,13 +269,19 @@ while True:
         setup_gpt()
         got_question = False
         need_completion = False
+    elif question.command == Command.TOGGLE_SOURCE:
+        messages += [{"role": "system", "content": source_code_statement}]
+        print_orange("API-key-less source code revealed to the assistant. Mind your tokens!")
+        got_question = False
+        need_completion = False
+    elif question.command == Command.QUIT:
+        goodbye()
 
     if not got_question:
         question = read_question()
         got_question = True
     if need_completion:
-        make_completion_streaming2()
+        make_completion()
         got_question = False
 
     need_completion = True
-    messages += [{"role": "system", "content": f"Current UTC datetime is: {datetime.now().strftime('%Y-%m-%dT%H:%M')}"}]
