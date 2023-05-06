@@ -1,3 +1,3 @@
-echo "Running Asq"
+echo "Loading Asq"
 stty erase ^H
 python3 asq

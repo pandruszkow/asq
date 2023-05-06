@@ -20,6 +20,14 @@ DEBUG_MODE = False
 GPT_4_MODE = False
 MODEL = ""
 CHARACTERS_PER_SECOND = 0
+cost_of_conversation = 0
+
+
+def compute_token_msg(token_count, type, cost_per_1k):
+	global cost_of_conversation
+	cost = token_count/1000*cost_per_1k
+	cost_of_conversation += cost
+	return f"{token_count} {type} tokens (${cost})"
 
 
 def redact_key(s, pattern, replacement="OPENAI_KEY = '***REDACTED_FOR_SECURITY***'"):
@@ -197,11 +205,10 @@ def goodbye():
 def make_completion():
 	global messages
 	tokens_input = 0
-	tokens_input_cost_1k = 0.03 if GPT4_MODE else 0.002
 	for message in messages:
 		tokens_input += len(tokenizer.encode(message["content"])) + 1 # for the user tag at the start
 
-	print_orange(f'Sending {tokens_input} (${tokens_input/1000*tokens_input_cost_1k}) input tokens to {MODEL}')
+	debug(f'{MODEL}::: Sending {compute_token_msg(tokens_input, "input", 0.03 if GPT_4_MODE else 0.002)}')
 	debug(f'[[[Streaming OpenAI {MODEL} response...]]]')
 	completion = openai.ChatCompletion.create(
 		model=MODEL,
@@ -236,7 +243,8 @@ def make_completion():
 	chunk_receiving_thread.join()
 	debug('joined thread')
 	ai_reply = text_sponge.all()
-	print_orange(f'Got {len(tokenizer.encode(ai_reply)) + 1} output tokens from {MODEL}')
+	debug(f'{MODEL}::: Got {compute_token_msg(len(tokenizer.encode(ai_reply)), "output", 0.06 if GPT_4_MODE else 0.002)}')
+	print_orange(f'Reminder - cost of conversation so far: ${cost_of_conversation}')
 	messages += [{"role": "assistant", "content": text_sponge.all()}]
 
 
@@ -299,7 +307,7 @@ try:
 					make_completion()
 					break
 				except Exception as e:
-					print_orange(f"Error calling OpenAI API.")
+					print_orange(f"Error calling OpenAI API: {e}")
 					if retries_left == 0:
 						exit(1)
 					else:
