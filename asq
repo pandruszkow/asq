@@ -179,6 +179,7 @@ def reset_convo():
     messages = [
         {"role": "system", "content": f"{you_are}. {assertiveness_statement}. {limitations}."},
         {"role": "system", "content": user_description},
+        {"role": "system", "content": f"Time and date at user's location: {datetime.now(pytz.timezone('Europe/London')).strftime('%H:%M on %Y-%m-%d')}"},
     ]
     messages.append({"role": "system", "content": f"You are currently 'speaking' to the user via a Python-based CLI that sends queries to the {MODEL} API and shows a response to the user. Whenever the user refers to your 'source code', assume that the user refers to the source code of the Python CLI rather than the {MODEL} LLM model (since that has no meaningful source code). You do not know your source code until the user uses the command `/source` to show it to you."})
 
@@ -241,47 +242,62 @@ if len(sys.argv) >= 2:
     question = UserInput(' '.join(sys.argv[1:]))
     got_question = True
 
+try:
+    while True:
 
-while True:
-    messages += [{"role": "system", "content": f"Time and date at user's location: {datetime.now(pytz.timezone('Europe/London')).strftime('%H:%M on %Y-%m-%d')}"}]
+        # Starts with 'False' unless we already got a question via argv
+        if not got_question:
+            question = read_question()
 
-    # Starts with 'False' unless we already got a question via argv
-    if not got_question:
-        question = read_question()
+        if question.command == Command.NONE:
+            messages += [{"role": "user", "content": question.text}]
+            got_question = True
+            need_completion = True
 
-    if question.command == Command.NONE:
-        messages += [{"role": "user", "content": question.text}]
-        got_question = True
+        elif question.command == Command.REGEN_COMPLETION:
+            messages.pop()
+            print_orange("Conversation rolled back by 1 AI message. Regenerating now.")
+            got_question = False
+            need_completion = True
+        elif question.command == Command.RESET_CONVO:
+            reset_convo()
+            print_orange("Conversation reset to the beginning.")
+            got_question = False
+            need_completion = False
+        elif question.command == Command.SWITCH_GPT4:
+            GPT_4_MODE = not GPT_4_MODE
+            setup_gpt()
+            got_question = False
+            need_completion = False
+        elif question.command == Command.TOGGLE_SOURCE:
+            messages += [{"role": "system", "content": source_code_statement}]
+            print_orange("API-key-less source code revealed to the assistant. Mind your tokens!")
+            got_question = False
+            need_completion = False
+        elif question.command == Command.QUIT:
+            goodbye()
+
+        if not got_question:
+            question = read_question()
+            got_question = True
+        if need_completion:
+            retries_left = 3
+            while True:
+                try:
+                    retries_left -= 1
+                    make_completion()
+                except Exception as e:
+                    print_orange(f"Error calling OpenAI API.")
+                    if retries_left == 0:
+                        exit(1)
+                    else:
+                        print_orange("Retrying {retries_left} more times...")
+
+            got_question = False
+
         need_completion = True
 
-    elif question.command == Command.REGEN_COMPLETION:
-        messages.pop()
-        print_orange("Conversation rolled back by 1 AI message. Regenerating now.")
-        got_question = False
-        need_completion = True
-    elif question.command == Command.RESET_CONVO:
-        reset_convo()
-        print_orange("Conversation reset to the beginning.")
-        got_question = False
-        need_completion = False
-    elif question.command == Command.SWITCH_GPT4:
-        GPT_4_MODE = not GPT_4_MODE
-        setup_gpt()
-        got_question = False
-        need_completion = False
-    elif question.command == Command.TOGGLE_SOURCE:
-        messages += [{"role": "system", "content": source_code_statement}]
-        print_orange("API-key-less source code revealed to the assistant. Mind your tokens!")
-        got_question = False
-        need_completion = False
-    elif question.command == Command.QUIT:
-        goodbye()
-
-    if not got_question:
-        question = read_question()
-        got_question = True
-    if need_completion:
-        make_completion()
-        got_question = False
-
-    need_completion = True
+except KeyboardInterrupt:
+    # Exit if user pressed Ctrl+C
+    goodbye()
+    sys.exit(0)
