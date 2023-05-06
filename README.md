@@ -10,17 +10,28 @@ Asq is currently preset to provide knowledge related to DevOps, Python and AWS, 
 
 This repository consists of the Asq source code and a Dockerfile so that you can run it in a container.
 
+### AI-assisted TL;DR
+
+TL;DR: Asq is a command-line tool that acts as a personal IT knowledge assistant, built on OpenAI GPT-3.5-turbo and GPT-4 APIs. It's designed to improve output quality over plain ChatGPT.
+
+An OpenAI and a user description must be provided before running Asq. The repository includes a Dockerfile for optionally running as a container. Asq by default focuses on DevOps, Python, and AWS, but is easily customizable to different topics.
+
+Basic multi-line editing and various commands are supported for a better CLI experience. Asq can see its own source code and suggest changes if needed.
+
+Future plans include chat history recording, better handling of chat logs, and a full refactor of the codebase. 
+
 ## Table of Contents
 
-- [Requirements](#requirements)
-- [Installation](#installation)
-    - [Docker Setup](#docker-setup)
-    - [Building the Docker Image](#building-the-docker-image)
 - [Configuration](#configuration)
-    - [Setting API Key](#setting-api-key)
-    - [Customizing User & Environment](#customizing-user--environment)
+  * [Setting the OpenAI API Key](#setting-the-openai-api-key)
+  * [Customizing a description of yourself and your environment](#customizing-a-description-of-yourself-and-your-environment)
+- [Requirements](#requirements)
+  * [Plain Python installation](#plain-python-installation)
+  * [Docker-based installation](#docker-based-installation)
 - [Usage](#usage)
-
+  * [Multi-line input](#multi-line-input)
+  * [/Commands](#commands)
+- [Future plans](#future-plans)
 
 ## Configuration
 
@@ -85,11 +96,11 @@ Asq supports several /-commands to make the CLI experience more tolerable:
 
 - `/reset`: Clears the entire message log. Do this frequently to save on API costs (this reduces token count), prevent crashing (no controlled "forgetting" will be supported before a full refactor is done), and to keep each discussion focused on one topic only
 
-- `/source`: Show Asq what its own source code looks like. This will allow it to self-criticise and to explain its operation. This is useful if you are planning to hack on Asq to extend it for your own purposes.
+- `/source`: Show Asq what its own source code looks like (injected as a system message). This will allow it to self-criticise and to explain its operation. This is useful if you are planning to hack on Asq to extend it for your own purposes. This option is off by default, as the full source code contains 3000+ tokens, and including it can be expensive in GPT-4 mode.
 
-- `/quit`: Exit the program
+- `/quit`: Exits the program
 
-## Future plans:
+## Future plans
 - [ ] Chat history recording
 - [ ] Refactor the codebase heavily, including splitting into files and moving functionality into separate libraries
 - [ ] Work on a more ergonomic way to do rollbacks, including rolling back N messages and allowing user to edit what they already wrote.
