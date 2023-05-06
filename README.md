@@ -28,7 +28,9 @@ Before using Asq, you must configure your API key and personalise a description 
 
 ### Setting the OpenAI API Key
 
-You can set up your OpenAI API key either by saving it in a file called `openai_key.txt` in the current working directory, or by setting an environment variable named `OPENAI_API_KEY`. The environment variable will override the contents of `openai_key.txt' if the file is present.
+You can set up your OpenAI API key either by saving it in a file called `openai_key.txt` in the current working directory, or by setting an environment variable named `OPENAI_API_KEY`.
+
+If set, the environment variable will override any contents of `openai_key.txt`.
 
 ### Customizing a description of yourself and your environment
 
@@ -67,7 +69,9 @@ This will launch Asq's interface, through which you can interact with GPT-3.5/GP
 
 By default, typing some text and pressing Enter will submit the question immediately. If you want to send a multi-line message - for example, the contents of a config file, a piece of source code, or a paragraph of text - you must first enter the multi-line mode.
 
-To do that, begin your first line with a `///` (or just type `///` on its own and press Enter). You can now type/paste as much text as you need. To finish typing in multi-line mode and submit your message, end your last line with `///` (or just type `///` on its own and press Enter). The whole block of text will then be submitted as a single message.
+To do that, begin your first line with a `///` (or just type `///` on its own and press Enter). You can now type/paste as much text as you need. To finish typing in multi-line mode and submit your message, end your last line with `///` (or just type `///` on its own and press Enter).
+
+The whole block of text will then be submitted as a single message.
 
 ### /-Commands
 
@@ -86,13 +90,13 @@ Asq supports several /-commands to make the CLI experience more tolerable:
 - `/quit`: Exit the program
 
 ## Future plans:
-- Chat history recording
-- Refactor the codebase heavily, including splitting into files and moving functionality into separate libraries
-- Work on a more ergonomic way to do rollbacks, including rolling back N messages and allowing user to edit what they already wrote.
-- Less hacky multi-line support
-- A simple web search + web scraping feature like that of Auto-GPT to allow Asq to help with technology released after the GPT cut-off date.
-- More powerful message log editing. Ideally, all operations will be supported - insertion of user/assistant/system messages at an arbitrary point in the log, editing, deletion.
-- More powerful history that works with the context length. This might include selecting a range of messages to be auto-summarised with GPT and replaced with the summary to keep the conversation length under the token limit.
-- Translation of the user_description.txt from arbitrary format/writing style into a third-person style (using GPT) on first start-up
-- Some sort of a configuration script to make the process easier.
-- Switchable personas (for different programming tasks, or even non-programming ones) and customisable inline text templates (langchain-style) to get Asq to produce the kind of solutions you want.
+- [ ] Chat history recording
+- [ ] Refactor the codebase heavily, including splitting into files and moving functionality into separate libraries
+- [ ] Work on a more ergonomic way to do rollbacks, including rolling back N messages and allowing user to edit what they already wrote.
+- [ ] Less hacky multi-line support
+- [ ] A simple web search + web scraping feature like that of Auto-GPT to allow Asq to help with technology released after the GPT cut-off date.
+- [ ] More powerful message log editing. Ideally, all operations will be supported - insertion of user/assistant/system messages at an arbitrary point in the log, editing, deletion.
+- [ ] More powerful history that works with the context length. This might include selecting a range of messages to be auto-summarised with GPT and replaced with the summary to keep the conversation length under the token limit.
+- [ ] Translation of the user_description.txt from arbitrary format/writing style into a third-person style (using GPT) on first start-up
+- [ ] Some sort of a configuration script to make the process easier.
+- [ ] Switchable personas (for different programming tasks, or even non-programming ones) and customisable inline text templates (langchain-style) to get Asq to produce the kind of solutions you want.

@@ -1,10 +1,12 @@
 #!/usr/bin/python3
+# Author(s): Piotr Andruszkow (c) 2023
+# License: GPLv3
 import threading
 from enum import Enum
 import inspect
 
 import openai
-import tiktoken
+import tiktoken # takes a while to load
 import sys
 import time
 import pytz
