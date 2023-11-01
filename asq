@@ -18,7 +18,7 @@ import os
 OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
 
 DEBUG_MODE = False
-GPT_4_MODE = False
+GPT_4_MODE = True
 MODEL = ""
 CHARACTERS_PER_SECOND = 0
 cost_of_conversation = 0
