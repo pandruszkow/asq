@@ -273,6 +273,7 @@ if len(sys.argv) >= 2:
 
 try:
 	while True:
+		retries_left = 3
 
 		# Starts with 'False' unless we already got a question via argv
 		if not got_question:
@@ -310,18 +311,18 @@ try:
 			question = read_question()
 			got_question = True
 		if need_completion:
-			retries_left = 3
-			while True:
+			while retries_left > 0:
 				try:
-					retries_left -= 1
 					make_completion()
+					retries_left = 3 #reset number of retries - if we reach this point, request was successful
 					break
 				except Exception as e:
 					print_orange(f"Error calling OpenAI API: {e}")
+					retries_left -= 1
 					if retries_left == 0:
 						exit(1)
 					else:
-						print_orange("Retrying {retries_left} more times...")
+						print_orange(f"Retrying {retries_left} more times...")
 
 			got_question = False
 
