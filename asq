@@ -176,7 +176,7 @@ def setup_gpt():
 	global MODEL, tokenizer, CHARACTERS_PER_SECOND, GPT_4_MODE
 	MODEL = 'gpt-4-0314' if GPT_4_MODE else 'gpt-3.5-turbo-0301'
 	tokenizer = tiktoken.encoding_for_model(MODEL)
-	CHARACTERS_PER_SECOND = 45 if GPT_4_MODE else 140
+	CHARACTERS_PER_SECOND = 55 if GPT_4_MODE else 150
 	gpt4_on_off = 'on' if GPT_4_MODE else 'off'
 	print_orange(f'GPT-4 now switched {gpt4_on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
 
