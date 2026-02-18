@@ -16,6 +16,10 @@ import re
 import os
 
 OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
+COLOR_GREY_ANSI_CODE = 90      # For reasoning
+COLOR_GREEN_ANSI_CODE = 92     # For user-facing output portion of response
+COLOR_ORANGE_ANSI_CODE = 33     # For program status messages/updates/info
+
 
 DEBUG_MODE = False
 GPT_4_MODE = True
@@ -74,7 +78,7 @@ def debug(text):
 
 class TextSponge:
 	def __init__(self, characters_per_second=0.05):
-		self.text_to_print = deque("")
+		self.text_to_print = deque() # consists of (char, color_ansi_code) pairs
 		self.text = ""
 		self.closed = False
 		self.delay_between_characters = 1 / characters_per_second
@@ -82,12 +86,12 @@ class TextSponge:
 	def __str__(self):
 		return self.text
 
-	def append(self, text):
+	def append(self, text, color=COLOR_GREEN_ANSI_CODE):
 #		 debug(f'appending: {text}')
 		if self.closed:
 			raise Exception
 		self.text += text
-		self.text_to_print.extend(text)
+		self.text_to_print.extend([(text, color)])
 
 	# A closed TextSponge is done yielding
 	def close(self):
@@ -103,9 +107,9 @@ class TextSponge:
 			chars_remaining = len(self.text_to_print)
  #			 debug(f'chars remaining: {chars_remaining}')
 			if chars_remaining > 0:
-				char = self.text_to_print.popleft()
+				char, color = self.text_to_print.popleft()
  #				 debug(f'yielding: {char}')
-				yield char
+				yield char, color
 				time.sleep(self.delay_between_characters)
 			elif chars_remaining == 0 and not self.closed:
 				time.sleep(0.01)
@@ -148,12 +152,10 @@ def read_question_multiline(initial_line, multiline_delimiter):
 	return '\n'.join(lines)
 
 
+def print_ai_streaming(text, color_code=COLOR_GREEN_ANSI_CODE):
+	print(f"\033[{color_code}m{text}\033[0m", end='', flush=True)
 def print_ai(text):
 	print("\033[92m{}\033[0m".format(text))
-
-
-def print_ai_streaming(text):
-	print("\033[92m{}\033[0m".format(text), end='', flush=True)
 
 
 def print_ai_streaming_slowly(text, start_timestamp, end_timestamp):
@@ -168,7 +170,7 @@ def print_ai_streaming_rate(text, delay_between_each):
 
 
 def print_orange(text):
-	print("\033[33m{}\033[0m".format(text))
+	print(f"\033[{COLOR_ORANGE_ANSI_CODE}m{text}\033[0m")
 
 
 def setup_gpt():
@@ -234,6 +236,8 @@ def make_completion():
 			chunk_text = chunk['choices'][0].get('delta', {}).get('content')
 			if chunk_text is not None:
 				text_sponge.append(chunk_text)
+			if chunk_response_text is not None:
+				text_sponge.append(chunk_response_text, COLOR_GREEN_ANSI_CODE)
 		text_sponge.append('\n')
 		text_sponge.close()
 
@@ -245,9 +249,9 @@ def make_completion():
 	debug('starting thread')
 
 	# Output characters in the foreground using the generator function, capturing them
-	for char in text_sponge.character_by_character():
+	for char, color in text_sponge.character_by_character():
 #		 debug(f'printing char: {char}')
-		print_ai_streaming(char)
+		print_ai_streaming(char, color)
 
 	# Wait for the processing thread just in case
 	chunk_receiving_thread.join()
