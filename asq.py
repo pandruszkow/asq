@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Author(s): Piotr Andruszkow (c) 2023
+# Author(s): Piotr Andruszkow (c) 2023, 2026
 # License: GPLv3
 import threading
 from enum import Enum
