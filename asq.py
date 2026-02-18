@@ -154,19 +154,6 @@ def read_question_multiline(initial_line, multiline_delimiter):
 
 def print_ai_streaming(text, color_code=COLOR_GREEN_ANSI_CODE):
 	print(f"\033[{color_code}m{text}\033[0m", end='', flush=True)
-def print_ai(text):
-	print("\033[92m{}\033[0m".format(text))
-
-
-def print_ai_streaming_slowly(text, start_timestamp, end_timestamp):
-	delay = (end_timestamp - start_timestamp) / len(text)
-	print_ai_streaming_rate(text, delay)
-
-
-def print_ai_streaming_rate(text, delay_between_each):
-	for char in text:
-		print("\033[92m{}\033[0m".format(char), end='', flush=True)
-		time.sleep(delay_between_each)
 
 
 def print_orange(text):
@@ -210,7 +197,7 @@ def reset_convo():
 def goodbye():
 	global messages
 	messages += [{"role": "user", "content": "/quit"}]
-	print_ai("Farewell!") #actual AI response, cached
+	print_ai_streaming("Farewell!\n") #actual AI response, cached to avoid round-trip to server
 	exit()
 
 
