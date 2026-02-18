@@ -175,8 +175,11 @@ def reset_convo():
 	you_are = f'You are an insightful IT assistant named \'Asq\', and you\'re sharp as a tack. You respond concisely and avoid being verbose. You get straight to the point, and explain later. Your specialities are: {", ".join(specialities)}'
 
 	# Read the description of user's environment (so specifics of the OS, GUI etc don't need to be given every session)
-	with open("user_description.txt", "r") as user_file:
-		user_description = user_file.read().strip()
+	try:
+		with open("user_description.txt", "r") as user_file:
+			user_description = user_file.read().strip()
+	except:
+		user_description = ""
 
 	messages = [
 		{"role": "system", "content": f"{you_are}. {assertiveness_statement}. {limitations}."},
