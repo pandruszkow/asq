@@ -23,6 +23,7 @@ COLOR_ORANGE_ANSI_CODE = 33     # For program status messages/updates/info
 
 DEBUG_MODE = False
 GPT_4_MODE = True
+SHOW_REASONING = True
 MODEL = ""
 CHARACTERS_PER_SECOND = 0
 cost_of_conversation = 0
@@ -223,9 +224,17 @@ def make_completion():
 
 	def process_completion(text_sponge, completion):
 		for chunk in completion:
-			chunk_text = chunk['choices'][0].get('delta', {}).get('content')
-			if chunk_text is not None:
-				text_sponge.append(chunk_text)
+			choices = chunk['choices']
+			if not choices:
+				debug(f"Something's odd, where are choices? Content: {chunk}") # Todo figure out what's causing this behaviour on Chutes, and whether it's in API spec
+				continue
+			chunk_delta = choices[0].get('delta', {})
+			chunk_reasoning = chunk_delta.get('reasoning_content')
+			chunk_response_text = chunk_delta.get('content')
+			if chunk_reasoning is not None and chunk_response_text is not None:
+				debug(f"Something's odd, both reasoning and response text present. Content: {chunk_delta}")
+			if chunk_reasoning is not None:
+				text_sponge.append(chunk_reasoning, COLOR_GREY_ANSI_CODE)
 			if chunk_response_text is not None:
 				text_sponge.append(chunk_response_text, COLOR_GREEN_ANSI_CODE)
 		text_sponge.append('\n')
