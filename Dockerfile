@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir /tmp/text_sponge*.tar.gz
 FROM requirementstxt AS app
 COPY . /app/
 
-CMD ["bash", "asq.sh"]
+CMD ["bash", "asq-ssh-wrapper.sh"]
