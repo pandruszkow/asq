@@ -70,10 +70,6 @@ cp user_description.txt.template user_description.txt
 And fill in any details about yourself that you'd like Asq to know. I personally chose to include some details about my OS, architecture, number of displays and other details that might help with troubleshooting your setup using Asq's help.
 
 ## Requirements
-### Plain Python installation
-
-To use Asq directly and without Docker, run `pip install -r requirements.txt`.
-
 ### Docker-based installation
 
 Make sure you configure Asq first using the instructions above - the Dockerfile build process will bake the config into the image. Follow the [official documentation](https://docs.docker.com/get-docker/) if Docker is not yet installed on your system.
@@ -86,7 +82,7 @@ docker build -t asq .
 
 ## Usage
 
-Now that Asq is configured, you can run it from the command line using `./asq.sh` or `docker run -it asq` (depending on how you installed it).
+Now that Asq is configured, you can run it from the command line using `./asq` or `docker run -it asq` (depending on how you installed it).
 
 This will launch Asq's interface, through which you can interact with the high-powered/turbo model of your choice. Exit with a Ctrl+C, a Ctrl+D, or by typing `/quit`
 
