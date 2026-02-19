@@ -193,7 +193,9 @@ def reset_convo():
 	]
 	messages.append({"role": "system", "content": f"You are currently 'speaking' to the user via a Python-based CLI that sends queries to the {MODEL} API and shows a response to the user. Whenever the user refers to your 'source code', assume that the user refers to the source code of the Python CLI rather than the {MODEL} LLM model (since that has no meaningful source code). You do not know your source code until the user uses the command `/source` to show it to you."})
 	example_conversation = [
-		{"role": "system", "content": "The following is an example convo with 2 questions. Please answer in a similar way to below."},
+		{"role": "system", "content": "The following is an example convo with a greeting 2 questions. Please answer in a similar way to below in the user-readable portion."},
+		{"role": "user", "content": "Hello."},
+		{"role": "assistant", "content": "How can I help?"},
 		{"role": "user", "content": "How do I unlock an account?"},
 		{"role": "assistant", "content": "```bash\nsudo passwd -u <username>\n```\n\n`<username>` is the account you want to unlock."},
 		{"role": "user", "content": "How install libsodium headers"},
