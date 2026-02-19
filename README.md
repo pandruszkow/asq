@@ -1,9 +1,13 @@
 # Asq - Your personal IT knowledge assistant
 
-Asq is a command-line wrapper around the OpenAI GPT-3.5-turbo and GPT-4 APIs. While it functions largely as well as the ChatGPT web interface, Asq is designed to use various prompting techniques in the background to improve the output quality, and help ChatGPT get to the point faster.
+Asq is a command-line wrapper around a OpenAI Chat Completions-compatible API of your choice, that keeps things simple and helps your LLM get to the point quickly.
 
-Asq features an optional self-reflection feature that can be used to let it inspect its own source code and suggest changes, so that you can customise it any way you like. You don't even need to know much Python - Asq can tell you which parts to change if you ask.
+Selling points:
 
+* Opinionated - Asq instructs LLMs to be brief, keeping signal-to-noise high
+* Low complexity - hackable by design, so you can extend and customise it for your purposes
+* Not slop-coded - largely built by hand = code is more understandable than the average hands-off vibe-coded AI project
+* Self-understanding - Asq shows its own source code to LLMs, so they can understand and help you hack on the codebase easily. You don't even need to know Python - just ask Asq to tell you what to change.
 Asq is currently stateless (i. e. won't remember anything between conversations), but support for a simple "save text to file" feature will be supported in the future (maybe).
 
 Asq is currently preset to provide knowledge related to DevOps, Python and AWS, but it can be very easily customised with minor changes to anything you like - it can just as easily become your personal Ruby on Windows expert, or a JavaScript on ChromeOS expert.
