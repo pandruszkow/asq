@@ -8,21 +8,11 @@ Selling points:
 * Low complexity - hackable by design, so you can extend and customise it for your purposes
 * Not slop-coded - largely built by hand = code is more understandable than the average hands-off vibe-coded AI project
 * Self-understanding - Asq shows its own source code to LLMs, so they can understand and help you hack on the codebase easily. You don't even need to know Python - just ask Asq to tell you what to change.
-Asq is currently stateless (i. e. won't remember anything between conversations), but support for a simple "save text to file" feature will be supported in the future (maybe).
+
 
 Asq is currently preset to provide knowledge related to DevOps, Python and AWS, but it can be very easily customised with minor changes to anything you like - it can just as easily become your personal Ruby on Windows expert, or a JavaScript on ChromeOS expert.
 
-This repository consists of the Asq source code and a Dockerfile so that you can run it in a container.
-
-### AI-assisted TL;DR
-
-TL;DR: Asq is a command-line tool that acts as a personal IT knowledge assistant, built on OpenAI GPT-3.5-turbo and GPT-4 APIs. It's designed to improve output quality over plain ChatGPT.
-
-An OpenAI and a user description must be provided before running Asq. The repository includes a Dockerfile for optionally running as a container. Asq by default focuses on DevOps, Python, and AWS, but is easily customizable to different topics.
-
-Basic multi-line editing and various commands are supported for a better CLI experience. Asq can see its own source code and suggest changes if needed.
-
-Future plans include chat history recording, better handling of chat logs, and a full refactor of the codebase. 
+Asq is currently stateless (i. e. won't remember anything between conversations). Session history recording will be added at some point.
 
 ## Table of Contents
 
@@ -120,5 +110,5 @@ docker build -t asq .
 - [ ] More powerful message log editing. Ideally, all operations will be supported - insertion of user/assistant/system messages at an arbitrary point in the log, editing, deletion.
 - [ ] More powerful history that works with the context length. This might include selecting a range of messages to be auto-summarised with GPT and replaced with the summary to keep the conversation length under the token limit.
 - [ ] Translation of the user_description.txt from arbitrary format/writing style into a third-person style (using GPT) on first start-up
-- [ ] Some sort of a configuration script to make the process easier.
+- [ ] Some sort of a configuration script to make the process of onboarding easier.
 - [ ] Switchable personas (for different programming tasks, or even non-programming ones) and customisable inline text templates (langchain-style) to get Asq to produce the kind of solutions you want.
