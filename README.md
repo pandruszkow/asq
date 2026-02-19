@@ -1,3 +1,5 @@
+![License: GPLv3](https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-green?style=plastic)
+
 # Asq - Your personal IT knowledge assistant
 
 Asq is a command-line wrapper around a OpenAI Chat Completions-compatible API of your choice, that keeps things simple and helps your LLM get to the point quickly.
