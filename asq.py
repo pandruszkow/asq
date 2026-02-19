@@ -185,7 +185,9 @@ def reset_convo():
 	try:
 		with open("user_description.txt", "r") as user_file:
 			user_description = user_file.read().strip()
-	except:
+			print_orange("Found user description file - will be shown to the model")
+	except FileNotFoundError:
+		print_orange("user_description.txt not found - if you'd like to use this, check the template for the suggested format.")
 		user_description = ""
 
 	messages = [
