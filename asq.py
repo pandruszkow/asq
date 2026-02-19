@@ -18,12 +18,14 @@ import re
 import os
 
 OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
+OPENAI_ENDPOINT = os.getenv('OPENAI_API_BASE') or "https://llm.chutes.ai/v1"
 COLOR_GREY_ANSI_CODE = 90      # For reasoning
 COLOR_GREEN_ANSI_CODE = 92     # For user-facing output portion of response
 COLOR_ORANGE_ANSI_CODE = 33    # For program status messages/updates/info
 
-HIGH_POWER_MODEL_SLUG = 'moonshotai/Kimi-K2.5-TEE'
-TURBO_MODEL_SLUG = 'openai/gpt-oss-120b-TEE'
+#TODO should be configurable by pandruszkow/asq#2
+HIGH_POWER_MODEL_SLUG = os.getenv('ASQ_HIGH_POWERED_MODEL') or 'moonshotai/Kimi-K2.5-TEE'
+TURBO_MODEL_SLUG = os.getenv('ASQ_TURBO_MODEL') or 'openai/gpt-oss-120b-TEE'
 
 DEBUG_MODE = False
 HIGH_POWERED_MODEL_MODE = True
@@ -172,7 +174,7 @@ def setup_gpt():
 	tokenizer = TOKENIZER
 	CHARACTERS_PER_SECOND = 55 if HIGH_POWERED_MODEL_MODE else 150
 	power_mode_label = 'High power (🧠)' if HIGH_POWERED_MODEL_MODE else 'Turbo (⏩)'
-	print_orange(f'{power_mode_label}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
+	print_orange(f'{power_mode_label}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}, endpoint = {OPENAI_ENDPOINT}')
 
 
 def reset_convo():
@@ -220,6 +222,7 @@ def make_completion():
 	debug(f'{MODEL}::: Sending {compute_token_msg(tokens_input, "input", 0.03 if HIGH_POWERED_MODEL_MODE else 0.002)}')
 	debug(f'[[[Streaming OpenAI {MODEL} response...]]]')
 	completion = openai.ChatCompletion.create(
+		base_url=OPENAI_ENDPOINT,
 		model=MODEL,
 		api_key=OPENAI_KEY,
 		messages=messages,
