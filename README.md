@@ -39,13 +39,23 @@ Future plans include chat history recording, better handling of chat logs, and a
 
 ## Configuration
 
-Before using Asq, you must configure your API key and personalise a description of yourself and your environment.
+Before using Asq, you must configure the API settings. You can also add some information about your personal environment, so Asq can tailor its advice to your tech stack.
 
-### Setting the OpenAI API Key
+### Setting the Endpoint URL
 
-You can set up your OpenAI API key either by saving it in a file called `openai_key.txt` in the current working directory, or by setting an environment variable named `OPENAI_API_KEY`.
+By default, Asq will send model requests to Chutes.AI.
 
-If set, the environment variable will override any contents of `openai_key.txt`.
+If you wish to override the base URL with OpenRouter, llama.cpp (llama-server), a litellm proxy, or any other Chat Completions-compatible HTTP/HTTPS endpoint, you can do it by setting an environment variable named `OPENAI_API_KEY` to the API base URL supplied by your API provider.
+
+A base URL will usually look something like this: `http://localhost:8080/v1` (llama-server from llama.cpp) or `https://api.example-provider.org/v1` (hosted API provider)
+
+Note the `/v1` at the end - if you are seeing 404/403 errors, this is probably because you got the URL wrong and are including too much or too little of the URL.
+
+<!-- #TODO needs fixing -->
+
+### Setting the API Key
+
+You can set up your Chat Completions API key either by setting an environment variable named `OPENAI_API_KEY`, or by saving it in a file called `openai_key.txt` in the current working directory. Environment variable takes precedence.
 
 ### Customizing a description of yourself and your environment
 
@@ -78,7 +88,7 @@ docker build -t asq .
 
 Now that Asq is configured, you can run it from the command line using `./asq.sh` or `docker run -it asq` (depending on how you installed it).
 
-This will launch Asq's interface, through which you can interact with GPT-3.5/GPT-4. Exit with a Ctrl+C, a Ctrl+D, or by typing `/quit`
+This will launch Asq's interface, through which you can interact with the high-powered/turbo model of your choice. Exit with a Ctrl+C, a Ctrl+D, or by typing `/quit`
 
 ### Multi-line input
 
@@ -92,9 +102,9 @@ The whole block of text will then be submitted as a single message.
 
 Asq supports several /-commands to make the CLI experience more tolerable:
 
-- `/gpt`: Switch between GPT-3.5 Turbo and GPT-4. Asq starts in GPT-3.5 Turbo mode by default, for a couple of reasons:
-  - GPT-3.5 will handle most requests just as well as GPT-4, but is much cheaper and generates its responses much faster
-  - GPT-4 support depends on whether you were approved for GPT-4 access from OpenAI, so GPT-3.5 is the safer bet
+- `/power`: Switch between a high-powered and a turbo model. Asq starts in Turbo mode by default, for a couple of reasons:
+  - Turbo models are usually cheaper and a lot faster, while being mostly as good
+  - High-powered models (in reasoning mode) will take a while to deliberate, which can break flow
 
 - `/`: Removes last message from the message log. Afterwards, press Enter to regenerate Asq's response, or type additional user input if you want to add anything before resubmitting your question. 
 
