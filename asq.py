@@ -43,6 +43,7 @@ def compute_token_msg(token_count, type, cost_per_1k):
 	return f"{token_count} {type} tokens (${cost})"
 
 
+#TODO convert this to generic "redact sensitive implementation details" function - perhaps can be extracted to a separate utility, as it's reusable
 def redact_key(s, pattern, replacement="OPENAI_KEY = '***REDACTED_FOR_SECURITY***'"):
 	return re.sub(pattern, replacement, s)
 
