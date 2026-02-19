@@ -6,6 +6,8 @@ from enum import Enum
 import inspect
 
 import openai
+import tiktoken
+
 import sys
 import time
 import pytz
@@ -18,11 +20,14 @@ import os
 OPENAI_KEY = os.getenv('OPENAI_API_KEY') or open("openai_key.txt", "r").readline().strip()
 COLOR_GREY_ANSI_CODE = 90      # For reasoning
 COLOR_GREEN_ANSI_CODE = 92     # For user-facing output portion of response
-COLOR_ORANGE_ANSI_CODE = 33     # For program status messages/updates/info
+COLOR_ORANGE_ANSI_CODE = 33    # For program status messages/updates/info
 
+HIGH_POWER_MODEL_SLUG = 'moonshotai/Kimi-K2.5-TEE'
+TURBO_MODEL_SLUG = 'openai/gpt-oss-120b-TEE'
 
 DEBUG_MODE = False
-GPT_4_MODE = True
+HIGH_POWERED_MODEL_MODE = True
+TOKENIZER = tiktoken.get_encoding("o200k_base") # approximate - does not fit any model beyond gpt-oss #TODO
 SHOW_REASONING = True
 MODEL = ""
 CHARACTERS_PER_SECOND = 0
@@ -60,7 +65,7 @@ def get_input(prompt):
 class Command(Enum):
 	REGEN_COMPLETION = 'REGEN_COMPLETION'
 	RESET_CONVO = 'RESET_CONVO'
-	SWITCH_GPT4 = 'SWITCH_GPT4'
+	SWITCH_HIGH_POWERED = 'SWITCH_HIGH_POWERED'
 	TOGGLE_SOURCE = 'TOGGLE_SOURCE'
 	QUIT = 'QUIT'
 	NONE = 'NONE'
@@ -122,7 +127,7 @@ def read_question() -> UserInput:
 	commands = {
 		'/': Command.REGEN_COMPLETION,
 		'/reset': Command.RESET_CONVO,
-		'/gpt': Command.SWITCH_GPT4,
+		'/power': Command.SWITCH_HIGH_POWERED,
 		'/source': Command.TOGGLE_SOURCE,
 		'/quit': Command.QUIT
 	}
@@ -162,13 +167,12 @@ def print_orange(text):
 
 
 def setup_gpt():
-	global MODEL, tokenizer, CHARACTERS_PER_SECOND, GPT_4_MODE
-	MODEL = 'gpt-4' if GPT_4_MODE else 'gpt-3.5-turbo'
-	import tiktoken # takes a while to load
-	tokenizer = tiktoken.encoding_for_model(MODEL)
-	CHARACTERS_PER_SECOND = 55 if GPT_4_MODE else 150
-	gpt4_on_off = 'on' if GPT_4_MODE else 'off'
-	print_orange(f'GPT-4 now switched {gpt4_on_off}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
+	global MODEL, tokenizer, CHARACTERS_PER_SECOND, HIGH_POWERED_MODEL_MODE
+	MODEL = HIGH_POWER_MODEL_SLUG if HIGH_POWERED_MODEL_MODE else TURBO_MODEL_SLUG
+	tokenizer = TOKENIZER
+	CHARACTERS_PER_SECOND = 55 if HIGH_POWERED_MODEL_MODE else 150
+	power_mode_label = 'High power (🧠)' if HIGH_POWERED_MODEL_MODE else 'Turbo (⏩)'
+	print_orange(f'{power_mode_label}, model = {MODEL}, characters per second = {CHARACTERS_PER_SECOND}')
 
 
 def reset_convo():
@@ -211,7 +215,7 @@ def make_completion():
 	for message in messages:
 		tokens_input += len(tokenizer.encode(message["content"])) + 1 # for the user tag at the start
 
-	debug(f'{MODEL}::: Sending {compute_token_msg(tokens_input, "input", 0.03 if GPT_4_MODE else 0.002)}')
+	debug(f'{MODEL}::: Sending {compute_token_msg(tokens_input, "input", 0.03 if HIGH_POWERED_MODEL_MODE else 0.002)}')
 	debug(f'[[[Streaming OpenAI {MODEL} response...]]]')
 	completion = openai.ChatCompletion.create(
 		model=MODEL,
@@ -256,7 +260,7 @@ def make_completion():
 	chunk_receiving_thread.join()
 	debug('joined thread')
 	ai_reply = text_sponge.all()
-	debug(f'{MODEL}::: Got {compute_token_msg(len(tokenizer.encode(ai_reply)), "output", 0.06 if GPT_4_MODE else 0.002)}')
+	debug(f'{MODEL}::: Got {compute_token_msg(len(tokenizer.encode(ai_reply)), "output", 0.06 if HIGH_POWERED_MODEL_MODE else 0.002)}')
 	print_orange(f'Reminder - cost of conversation so far: ${cost_of_conversation}')
 	messages += [{"role": "assistant", "content": text_sponge.all()}]
 
@@ -297,8 +301,8 @@ try:
 			print_orange("Conversation reset to the beginning.")
 			got_question = False
 			need_completion = False
-		elif question.command == Command.SWITCH_GPT4:
-			GPT_4_MODE = not GPT_4_MODE
+		elif question.command == Command.SWITCH_HIGH_POWERED:
+			HIGH_POWERED_MODEL_MODE = not HIGH_POWERED_MODEL_MODE
 			setup_gpt()
 			got_question = False
 			need_completion = False
