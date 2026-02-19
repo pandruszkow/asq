@@ -69,16 +69,6 @@ cp user_description.txt.template user_description.txt
 
 And fill in any details about yourself that you'd like Asq to know. I personally chose to include some details about my OS, architecture, number of displays and other details that might help with troubleshooting your setup using Asq's help.
 
-## Requirements
-### Docker-based installation
-
-Make sure you configure Asq first using the instructions above - the Dockerfile build process will bake the config into the image. Follow the [official documentation](https://docs.docker.com/get-docker/) if Docker is not yet installed on your system.
-
-Afterwards, build the Docker image:
-
-```sh
-docker build -t asq .
-```
 
 ## Usage
 
@@ -102,13 +92,24 @@ Asq supports several /-commands to make the CLI experience more tolerable:
   - Turbo models are usually cheaper and a lot faster, while being mostly as good
   - High-powered models (in reasoning mode) will take a while to deliberate, which can break flow
 
-- `/`: Removes last message from the message log. Afterwards, press Enter to regenerate Asq's response, or type additional user input if you want to add anything before resubmitting your question. 
+- `/`: **BUGGY** (this is a known issue and will be fixed at some point). Removes last message from the message log. Afterwards, press Enter to regenerate Asq's response, or type additional user input if you want to add anything before resubmitting your question. 
 
 - `/reset`: Clears the entire message log. Do this frequently to save on API costs (this reduces token count), prevent crashing (no controlled "forgetting" will be supported before a full refactor is done), and to keep each discussion focused on one topic only
 
-- `/source`: Show Asq what its own source code looks like (injected as a system message). This will allow it to self-criticise and to explain its operation. This is useful if you are planning to hack on Asq to extend it for your own purposes. This option is off by default, as the full source code contains 3000+ tokens, and including it can be expensive in GPT-4 mode.
+- `/source`: Show Asq what its own source code looks like (injected as a system message). This will allow it to self-criticise and to explain its operation. This is useful if you are planning to hack on Asq to extend it for your own purposes. This option is off by default, as the full source code contains 3000+ tokens, and including it can be expensive in high-powered model mode.
 
 - `/quit`: Exits the program
+
+
+## Docker-based installation
+
+Make sure you configure Asq first using the instructions above - the Dockerfile build process will bake the config into the image. Follow the [official documentation](https://docs.docker.com/get-docker/) if Docker is not yet installed on your system.
+
+Afterwards, build the Docker image:
+
+```sh
+docker build -t asq .
+```
 
 ## Future plans
 - [ ] Chat history recording
